@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Escaple — Prototype</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="style.css">
+  <!-- Phaser 3 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+</head>
+<body>
+  <div id="ui">
+    <div id="topbar">
+      <div id="title">Escaple — Prototype</div>
+      <div id="score">Room <span id="roomNum">1</span></div>
+    </div>
+    <div id="inventory">
+      <div class="inv-title">Inventory</div>
+      <div id="inv-items"></div>
+    </div>
+    <div id="messageBox" class="hidden"></div>
+    <div id="gameContainer"></div>
+    <!-- Cozy Input Modal -->
+    <div id="inputModal" class="hidden">
+    <div id="inputModalBox">
+        <div id="inputModalMessage"></div>
+        <input type="text" id="inputModalInput" />
+        <div id="inputModalButtons">
+        <button id="inputModalOk">Submit</button>
+        <button id="inputModalCancel">Cancel</button>
+        </div>
+    </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
