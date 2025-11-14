@@ -17,8 +17,7 @@ const STATE = {
   }
 };
 
-// ---- ROOM DATA (JSON-like) ----
-// Coordinates are center-based (x,y) to match Phaser rectangle center placement
+// ---- ROOM DATA ----
 const ROOM_DATA = {
   1: {
     color: 0xffeedc,
@@ -105,8 +104,15 @@ const ROOM_DATA = {
   }
 };
 
-// ---- DOM Helpers (inventory + messages) ----
+// ---- DOM Helpers ----
 function addToInventory(name) {
+  if (name.includes('Flashlight')) {
+    if (STATE.inventory.includes('Flashlight (no batteries)') || STATE.inventory.includes('Flashlight (powered)')) {
+      showMessage('You already took the flashlight.');
+      return;
+    }
+  }
+
   if (!STATE.inventory.includes(name)) {
     STATE.inventory.push(name);
     renderInventory();
@@ -144,7 +150,6 @@ function showMessage(text, timeout = 3500) {
   msgTimeout = setTimeout(() => box.classList.add('hidden'), timeout);
 }
 
-// small utility to replace item once (used to assemble flashlight+batts)
 function replaceInventoryItem(oldName, newName) {
   const idx = STATE.inventory.indexOf(oldName);
   if (idx !== -1) {
@@ -164,24 +169,24 @@ const ACTIONS = {
     STATE.flags[flag] = !STATE.flags[flag];
     showMessage(STATE.flags[flag] ? payload.trueMsg : payload.falseMsg);
   },
-    promptCode: async (scene, payload) => {
-    const code = await askInput('Enter code:');
-    if (!code) { showMessage('No entry.'); return; }
 
-    code = code.toString().trim(); // ensure string, trim spaces
+  promptCode: (scene, payload) => {
+    let code = prompt('Enter code:');
+    if (code === null) { showMessage('No entry.'); return; }
 
-    // normalize codes too
-    const validCodes = payload.codes.map(c => c.toString().trim());
+    code = code.toString().trim();
+    const validCodes = (payload.codes || []).map(c => c.toString().trim());
 
     if (validCodes.includes(code)) {
-        if (payload.onSuccessAdd && !STATE.inventory.includes(payload.onSuccessAdd)) {
-            addToInventory(payload.onSuccessAdd);
-        }
-        showMessage(payload.successMessage || 'Unlocked!');
+      if (payload.onSuccessAdd && !STATE.inventory.includes(payload.onSuccessAdd)) {
+        addToInventory(payload.onSuccessAdd);
+      }
+      showMessage(payload.successMessage || 'Unlocked!');
     } else {
-        showMessage(payload.failMessage || 'Wrong code.');
+      showMessage(payload.failMessage || 'Wrong code.');
     }
   },
+
   revealIfFlagAndItems: (scene, payload) => {
     const { requiredFlag, requiredItems, revealMessage, failMessage } = payload;
     const flagOk = requiredFlag ? !!STATE.flags[requiredFlag] : true;
@@ -192,80 +197,26 @@ const ACTIONS = {
       showMessage(failMessage || 'Nothing new here.');
     }
   },
-    enterWord: async (scene, payload) => {
-        const entry = await askInput('Enter 5-letter code:');
-        if (!entry) { showMessage('No entry.'); return; }
-        if (entry.toUpperCase() === payload.solution) {
-            showMessage(payload.success, 6000);
-        } else {
-            showMessage(payload.fail, 3000);
-        }
-    },
+
+  enterWord: (scene, payload) => {
+    let entry = prompt('Enter 5-letter code:');
+    if (entry === null) { showMessage('No entry.'); return; }
+
+    entry = entry.toString().trim().toUpperCase();
+    if (entry === payload.solution) {
+      showMessage(payload.success, 6000);
+    } else {
+      showMessage(payload.fail, 3000);
+    }
+  },
 
   messageWithFlag: (scene, payload) => {
-    const flag = payload.flag;
-    const val = STATE.flags[flag];
+    const val = STATE.flags[payload.flag];
     showMessage(val ? payload.ifTrue : payload.ifFalse);
   }
 };
 
-// ---- MODAL INPUT SYSTEM ----
-function askInput(promptText) {
-  return new Promise((resolve) => {
-    const modal = document.getElementById('inputModal');
-    const modalBox = document.getElementById('inputModalBox');
-    const msg = document.getElementById('inputModalMessage');
-    const input = document.getElementById('inputModalInput');
-    const okBtn = document.getElementById('inputModalOk');
-    const cancelBtn = document.getElementById('inputModalCancel');
-
-    msg.textContent = promptText;
-    input.value = '';
-    modal.classList.remove('hidden');
-    setTimeout(() => modal.classList.add('show'), 10);
-    input.focus();
-
-    function cleanup() {
-      modal.classList.remove('show');
-      setTimeout(() => modal.classList.add('hidden'), 300);
-      okBtn.removeEventListener('click', okHandler);
-      cancelBtn.removeEventListener('click', cancelHandler);
-      input.removeEventListener('keydown', keyHandler);
-      modal.removeEventListener('click', outsideClickHandler);
-      modalBox.removeEventListener('click', boxClickHandler);
-    }
-
-    function closeAndResolve(val) {
-      cleanup();
-      resolve(val);
-    }
-
-    function okHandler() { closeAndResolve(input.value.trim()); }
-    function cancelHandler() { closeAndResolve(null); }
-
-    function keyHandler(e) {
-      if (e.key === 'Enter') okHandler();
-      if (e.key === 'Escape') cancelHandler();
-    }
-
-    // Only clicks directly on the overlay should close
-    function outsideClickHandler(e) {
-      if (!modalBox.contains(e.target)) closeAndResolve(null);
-    }
-
-    // Stop clicks inside the box from bubbling
-    function boxClickHandler(e) { e.stopPropagation(); }
-
-    okBtn.addEventListener('click', okHandler);
-    cancelBtn.addEventListener('click', cancelHandler);
-    input.addEventListener('keydown', keyHandler);
-    modal.addEventListener('click', outsideClickHandler);
-    modalBox.addEventListener('click', boxClickHandler);
-  });
-}
-
-
-// ---- Phaser Scene (data-driven) ----
+// ---- Phaser Scene ----
 class BaseRoom extends Phaser.Scene {
   constructor(key, roomNum) {
     super(key);
@@ -273,27 +224,21 @@ class BaseRoom extends Phaser.Scene {
   }
 
   create() {
-    // update visible room number
     document.getElementById('roomNum').innerText = this.roomNum;
 
-    // get room data
     const data = ROOM_DATA[this.roomNum];
     this.cameras.main.setBackgroundColor(data.color);
 
-    // hold created hotspot objects so we can clean up if needed
     this.hotspots = [];
 
-    // hotspot factory reads from data
     data.hotspots.forEach(h => {
       const rect = this.add.rectangle(h.x, h.y, h.w, h.h, 0xffffff, 0.03)
         .setStrokeStyle(2, 0x000000, 0.08)
         .setInteractive({ useHandCursor: true });
 
-      // label (can be hidden in production)
       const label = this.add.text(h.x - h.w / 2 + 10, h.y - h.h / 2 + 8, h.label, { font: '14px Arial', color: '#3C2F2F' });
 
       rect.on('pointerdown', () => {
-        // dispatch the action type
         const act = h.action;
         if (!act || !act.type) {
           showMessage('Nothing special here.');
@@ -302,18 +247,15 @@ class BaseRoom extends Phaser.Scene {
         const handler = ACTIONS[act.type];
         if (handler) handler(this, act.payload || act);
         else showMessage('Unimplemented action: ' + act.type);
-        // after any interaction, run post-update checks (assemble flashlight etc.)
+
         this.postInteractionUpdate();
       });
 
       this.hotspots.push({ rect, label });
     });
 
-    // navigation
-    const navLeft = this.add.text(14, 14, '< Prev', { font: '16px Arial', color: '#fff', backgroundColor: '#7b6452', padding: 6 })
-      .setInteractive();
-    const navRight = this.add.text(GAME_WIDTH - 80, 14, 'Next >', { font: '16px Arial', color: '#fff', backgroundColor: '#7b6452', padding: 6 })
-      .setInteractive();
+    const navLeft = this.add.text(14, 14, '< Prev', { font: '16px Arial', color: '#fff', backgroundColor: '#7b6452', padding: 6 }).setInteractive();
+    const navRight = this.add.text(GAME_WIDTH - 80, 14, 'Next >', { font: '16px Arial', color: '#fff', backgroundColor: '#7b6452', padding: 6 }).setInteractive();
 
     navLeft.on('pointerdown', () => {
       const prev = this.roomNum === 1 ? 4 : this.roomNum - 1;
@@ -324,18 +266,20 @@ class BaseRoom extends Phaser.Scene {
       this.scene.start('room' + next);
     });
 
-    // run initial post-update check (in case inventory loaded from localStorage later)
     this.postInteractionUpdate();
   }
 
-  // small helper to do consistent post-interaction logic
   postInteractionUpdate() {
-    // assemble flashlight automatically if player has both pieces
     if (STATE.inventory.includes('Flashlight (no batteries)') && STATE.inventory.includes('Batteries')) {
       if (replaceInventoryItem('Flashlight (no batteries)', 'Flashlight (powered)')) {
         showMessage('You assembled the flashlight with the batteries. It is now powered.');
         STATE.flags.flashlightPowered = true;
       }
+    }
+
+    if (STATE.inventory.includes('Flashlight (powered)') && STATE.inventory.includes('Batteries')) {
+      removeFromInventory('Batteries');
+      showMessage('The batteries are used up and can’t be reused.');
     }
   }
 }
@@ -358,7 +302,6 @@ const config = {
 
 const game = new Phaser.Game(config);
 
-// initial DOM wiring
 window.onload = () => {
   renderInventory();
   showMessage('Welcome to Escaple prototype — try clicking things. Use Next/Prev to navigate rooms.');
