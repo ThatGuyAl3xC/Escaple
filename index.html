@@ -21,6 +21,44 @@
     <div id="messageBox" class="hidden"></div>
     <div id="gameContainer"></div>
   </div>
+  <!-- Cozy Modal + Numeric Keypad -->
+  <div id="modalOverlay" class="modal-hidden">
+    <div id="modalBox">
+
+      <!-- Modal text -->
+      <div id="modalText"></div>
+
+      <!-- Text input for words -->
+      <input id="textInput" class="modal-input" type="text" />
+
+      <!-- Digital input display for keypad -->
+      <input id="keypadInput" class="modal-input" type="text" readonly />
+
+
+      <!-- Numeric keypad -->
+      <div id="keypad">
+        <button class="key-btn">1</button>
+        <button class="key-btn">2</button>
+        <button class="key-btn">3</button>
+
+        <button class="key-btn">4</button>
+        <button class="key-btn">5</button>
+        <button class="key-btn">6</button>
+
+        <button class="key-btn">7</button>
+        <button class="key-btn">8</button>
+        <button class="key-btn">9</button>
+
+        <button class="key-btn key-zero">0</button>
+      </div>
+
+      <!-- Buttons -->
+      <div id="modalButtons">
+        <button id="modalCancel">Cancel</button>
+        <button id="modalOk">OK</button>
+      </div>
+    </div>
+  </div>
   <script src="main.js"></script>
 </body>
 </html>

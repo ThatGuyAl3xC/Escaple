@@ -106,3 +106,154 @@ button.room-btn {
   border: 2px solid #cbb89d;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+
+/* Modal Styles */
+/* --- Modal --- */
+/* ============================
+   🔐 MODAL OVERLAY + ANIMATION
+   ============================ */
+#modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 1;
+  animation: modalFadeIn 0.25s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-hidden {
+  display: none !important;
+}
+
+/* ============================
+   🔐 MODAL BOX
+   ============================ */
+#modalBox {
+  background: rgba(255, 248, 242, 0.97);
+  border: 2px solid #e4cdb2;
+  border-radius: 16px;
+  padding: 20px 22px;
+  width: 330px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+  color: #3c2f2f;
+  font-family: "Inter";
+  animation: modalScaleIn 0.25s ease-out;
+}
+
+@keyframes modalScaleIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Title / text */
+#modalText {
+  margin-bottom: 12px;
+  font-size: 16px;
+  line-height: 1.45;
+  font-weight: 600;
+  text-align: center;
+  color: #5b4434;
+}
+
+/* ============================
+   🔐 DIGITAL INPUT DISPLAY
+   ============================ */
+.modal-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 2px solid #d7c0a6;
+  background: #fffdf9;
+  margin-bottom: 18px;
+  font-size: 20px;
+  color: #3c2f2f;
+  text-align: center;
+  letter-spacing: 4px;
+  font-weight: 700;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* ============================
+   🔐 NUMERIC KEYPAD GRID
+   ============================ */
+#keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.key-btn {
+  background: #fff3e6;
+  border: 1px solid #e0c7a8;
+  border-radius: 12px;
+  padding: 14px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #5b4030;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s, box-shadow 0.12s;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+.key-btn:hover {
+  background: #f9e7d4;
+}
+
+.key-btn:active {
+  transform: scale(0.92);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+  background: #f3d9c1;
+}
+
+/* "0" key spanning full width */
+.key-zero {
+  grid-column: span 3;
+}
+
+/* ============================
+   🔐 BOTTOM BUTTONS (CONFIRM / CANCEL)
+   ============================ */
+#modalButtons {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+#modalButtons button {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: #7b6452;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.15s, transform 0.12s;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+}
+
+#modalButtons button:hover {
+  background: #6d5847;
+}
+
+#modalButtons button:active {
+  transform: scale(0.94);
+}
+
+/* Mobile-friendly */
+@media (max-width: 480px) {
+  #modalBox {
+    width: 92%;
+  }
+}
+

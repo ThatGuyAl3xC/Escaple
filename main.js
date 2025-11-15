@@ -104,6 +104,56 @@ const ROOM_DATA = {
   }
 };
 
+// Show a text input modal
+function uiPrompt(question, defaultValue = "") {
+  return new Promise(resolve => {
+    const overlay = document.getElementById("modalOverlay");
+    const text = document.getElementById("modalText");
+    const input = document.getElementById("textInput");
+    const keypad = document.getElementById("keypad");
+    const ok = document.getElementById("modalOk");
+    const cancel = document.getElementById("modalCancel");
+
+    // only text input visible
+    input.style.display = "block";
+    document.getElementById("keypadInput").style.display = "none";
+    keypad.style.display = "none";
+    input.value = defaultValue;
+    input.removeAttribute("readonly");
+    text.textContent = question;
+    overlay.classList.remove("modal-hidden");
+    input.focus();
+    input.select();
+
+    const stop = e => e.stopImmediatePropagation();
+    document.addEventListener("pointerdown", stop, true);
+
+    function cleanup() {
+      overlay.classList.add("modal-hidden");
+      document.removeEventListener("pointerdown", stop, true);
+      input.removeEventListener("keydown", onKey);
+      ok.onclick = null;
+      cancel.onclick = null;
+    }
+
+    function close(result) {
+      cleanup();
+      resolve(result);
+    }
+
+    function onKey(e) {
+      if (e.key === "Enter") { e.preventDefault(); close(input.value.trim()); }
+      if (e.key === "Escape") { e.preventDefault(); close(null); }
+    }
+
+    input.addEventListener("keydown", onKey);
+
+    ok.onclick = () => close(input.value.trim() || null);
+    cancel.onclick = () => close(null);
+  });
+}
+
+
 // ---- DOM Helpers ----
 function addToInventory(name) {
   if (name.includes('Flashlight')) {
@@ -160,6 +210,61 @@ function replaceInventoryItem(oldName, newName) {
   return false;
 }
 
+// =====================================
+// NUMERIC KEYPAD MODAL SYSTEM
+// =====================================
+function uiKeypadPrompt(question) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById("modalOverlay");
+    const text = document.getElementById("modalText");
+    const input = document.getElementById("keypadInput");
+    const keypad = document.getElementById("keypad");
+    const ok = document.getElementById("modalOk");
+    const cancel = document.getElementById("modalCancel");
+
+    // only keypad visible
+    input.style.display = "block";
+    document.getElementById("textInput").style.display = "none";
+    input.value = "";
+    input.setAttribute("readonly", true);
+    text.textContent = question;
+    keypad.style.display = "grid";
+    overlay.classList.remove("modal-hidden");
+
+    const stop = e => {
+      if(!e.target.closest("#modalBox")) e.stopImmediatePropagation()
+    };
+    document.addEventListener("pointerdown", stop, true);
+
+    function cleanup() {
+      overlay.classList.add("modal-hidden");
+      document.removeEventListener("pointerdown", stop, true);
+      ok.onclick = null;
+      cancel.onclick = null;
+      keypad.querySelectorAll(".key-btn").forEach(btn => btn.onclick = null);
+    }
+
+    // remove all keypad listeners
+    keypad.querySelectorAll(".key-btn").forEach(btn => btn.onclick = null);
+
+    function close(result) {
+      cleanup();
+      resolve(result);
+    }
+
+    // keypad buttons
+    keypad.querySelectorAll(".key-btn").forEach(btn => {
+      btn.onclick = () => {
+        if (input.value.length < 5) input.value += btn.textContent;
+      };
+    });
+
+    ok.onclick = () => close(input.value.trim() || null);
+    cancel.onclick = () => close(null);
+  });
+}
+
+
 // ---- Action Handlers ----
 const ACTIONS = {
   message: (scene, payload) => showMessage(payload),
@@ -171,21 +276,23 @@ const ACTIONS = {
   },
 
   promptCode: (scene, payload) => {
-    let code = prompt('Enter code:');
-    if (code === null) { showMessage('No entry.'); return; }
+    uiKeypadPrompt('Enter code:').then(code => {
+      if (code === null) { showMessage('No entry.'); return; }
 
-    code = code.toString().trim();
-    const validCodes = (payload.codes || []).map(c => c.toString().trim());
+      code = code.toString().trim();
+      const validCodes = (payload.codes || []).map(c => c.toString().trim());
 
-    if (validCodes.includes(code)) {
-      if (payload.onSuccessAdd && !STATE.inventory.includes(payload.onSuccessAdd)) {
-        addToInventory(payload.onSuccessAdd);
+      if (validCodes.includes(code)) {
+        if (payload.onSuccessAdd && !STATE.inventory.includes(payload.onSuccessAdd)) {
+          addToInventory(payload.onSuccessAdd);
+        }
+        showMessage(payload.successMessage || 'Unlocked!');
+      } else {
+        showMessage(payload.failMessage || 'Wrong code.');
       }
-      showMessage(payload.successMessage || 'Unlocked!');
-    } else {
-      showMessage(payload.failMessage || 'Wrong code.');
-    }
+    });
   },
+
 
   revealIfFlagAndItems: (scene, payload) => {
     const { requiredFlag, requiredItems, revealMessage, failMessage } = payload;
@@ -199,15 +306,17 @@ const ACTIONS = {
   },
 
   enterWord: (scene, payload) => {
-    let entry = prompt('Enter 5-letter code:');
-    if (entry === null) { showMessage('No entry.'); return; }
+    uiPrompt('Enter 5-letter code:').then(entry => {
+      if (entry === null) { showMessage('No entry.'); return; }
 
-    entry = entry.toString().trim().toUpperCase();
-    if (entry === payload.solution) {
-      showMessage(payload.success, 6000);
-    } else {
-      showMessage(payload.fail, 3000);
-    }
+      entry = entry.toString().trim().toUpperCase();
+
+      if (entry === payload.solution) {
+        showMessage(payload.success, 6000);
+      } else {
+        showMessage(payload.fail, 3000);
+      }
+    });
   },
 
   messageWithFlag: (scene, payload) => {
